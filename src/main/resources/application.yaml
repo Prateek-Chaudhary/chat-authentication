@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: chat-authentication
+
+  profile:
+    active: prod
+
+server:
+  port: 5001
