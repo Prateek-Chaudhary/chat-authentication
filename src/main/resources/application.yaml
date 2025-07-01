@@ -3,7 +3,7 @@ spring:
     name: chat-authentication
 
   profile:
-    active: prod
+    active: uat
 
 server:
   port: 5001
