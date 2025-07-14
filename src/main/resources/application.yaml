@@ -2,8 +2,8 @@ spring:
   application:
     name: chat-authentication
 
-  profile:
+  profiles:
     active: dev
 
 server:
-  port: 5001
+  port: ${SERVER.PORT}
