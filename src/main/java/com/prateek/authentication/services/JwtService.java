@@ -1,23 +1,26 @@
 package com.prateek.authentication.services;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
+import com.prateek.authentication.configs.SecretKeyConfigs;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;
-import java.util.Date;
-import java.util.List;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 import java.util.function.Function;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class JwtService {
 
-    private final String SECRET_KEY = "504c172fbbd5bafde4042c2f508050f30a8496c50642e9be2fc20dabb43d5b63";
+    private final SecretKeyConfigs secretKeyConfigs;
 
     public String extractUsername(String token) {
         return extractClaims(token, Claims::getSubject);
@@ -34,15 +37,35 @@ public class JwtService {
 
     private Claims extractAllClaims(String token) {
         return Jwts.parser()
-                .verifyWith(getSignKey())
+                .verifyWith(getSignKey(secretKeyConfigs.getSecretKeys().get(secretKeyConfigs.getActiveKey())))
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
     }
 
     public boolean isTokenValid(String token, UserDetails user) {
-        String username = extractUsername(token);
-        return username.equals(user.getUsername()) && !isTokenExpired(token);
+        try {
+            Jws<Claims> jws = Jwts.parser()
+                    .verifyWith(getSignKey(secretKeyConfigs.getSecretKeys().get(secretKeyConfigs.getActiveKey())))
+                    .build()
+                    .parseSignedClaims(token);
+
+            // Now get header safely
+            JwsHeader header = jws.getHeader();
+            String kid = (String) header.get("kid");
+            if(kid == null || !secretKeyConfigs.getSecretKeys().containsKey(kid)) return false;
+
+            Claims claims = Jwts.parser()
+                    .verifyWith(getSignKey(secretKeyConfigs.getSecretKeys().get(kid)))
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            String username = claims.getSubject();
+            return username.equals(user.getUsername()) && !isTokenExpired(token);
+        }
+        catch (JwtException | IllegalArgumentException ex) {
+            return false;
+        }
     }
 
     private boolean isTokenExpired(String token) {
@@ -59,8 +82,9 @@ public class JwtService {
                 .toList();
 
         return Jwts.builder()
+                .header().add("kid", secretKeyConfigs.getActiveKey()).and()
                 .subject(user.getUsername())
-                .signWith(getSignKey())
+                .signWith(getSignKey(secretKeyConfigs.getSecretKeys().get(secretKeyConfigs.getActiveKey())))
                 .claim("roles", roles)
                 .claim("userId", userId)
                 .issuedAt(new Date(System.currentTimeMillis()))
@@ -74,8 +98,9 @@ public class JwtService {
                 .toList();
 
         return Jwts.builder()
+                .header().add("kid", secretKeyConfigs.getActiveKey()).and()
                 .subject(user.getUsername())
-                .signWith(getSignKey())
+                .signWith(getSignKey(secretKeyConfigs.getSecretKeys().get(secretKeyConfigs.getActiveKey())))
                 .claim("roles", roles)
                 .claim("userId", userId)
                 .issuedAt(new Date(System.currentTimeMillis()))
@@ -83,8 +108,8 @@ public class JwtService {
                 .compact();
     }
 
-    private SecretKey getSignKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
+    private SecretKey getSignKey(String secretKey) {
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }
