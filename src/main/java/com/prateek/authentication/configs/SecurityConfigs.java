@@ -2,6 +2,8 @@ package com.prateek.authentication.configs;
 
 import com.prateek.authentication.filters.JwtFilter;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -14,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+@Slf4j
 @Configuration
 @RequiredArgsConstructor
 public class SecurityConfigs {
@@ -24,8 +27,8 @@ public class SecurityConfigs {
     SecurityFilterChain getFilter(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
         .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/chat-application/user/create",
-                        "/chat-application/user/login"
+                .requestMatchers("api/v1/chat-application/user/create",
+                        "api/v1/chat-application/user/login"
                 ).permitAll()
                 .anyRequest().authenticated()
         ).sessionManagement(session -> session

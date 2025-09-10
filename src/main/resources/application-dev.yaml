@@ -19,6 +19,14 @@ spring:
       port: ${REDIS.PORT}
       password: ${REDIS.USER}
 
+eureka:
+  instance:
+    hostname: localhost
+    prefer-ip-address: false
+  client:
+    service-url:
+      defaultZone: http://localhost:5555/eureka
+
 jwt:
   activeKey: key1
   secretKeys:

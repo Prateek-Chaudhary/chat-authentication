@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.WebRequest;
 
 @RestController
-@RequestMapping("chat-application/user/")
+@RequestMapping("api/v1/chat-application/user/")
 @RequiredArgsConstructor
 @Validated
 public class ChatUserController {
